@@ -6,6 +6,9 @@ def moving_average(x, w):
     x: input signal
     w: window
     """
-    return np.convolve(x, np.ones(w), 'valid') / w
+    resultado = np.convolve(x, np.ones(w), 'valid') / w
+    plt.plot(resultado)
+    if __name__ != "__main__":
+        plt.show()
+    return resultado
 
-plt.show()
