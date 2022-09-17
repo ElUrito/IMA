@@ -51,7 +51,8 @@ class Window(QWidget):
         self.botonrad2 = QRadioButton("Tercio")
         layout.addWidget(self.botonrad2)
         self.botonrad2.setChecked(True)
-            
+
+        self.data = None    
         boton2=QPushButton("Calcular filtro")
         boton2.clicked.connect(self.aguanteFede2)
         layout.addWidget(boton2)
@@ -65,17 +66,23 @@ class Window(QWidget):
 
     def aguanteFede(self):
         filePath, data, fs, dataMax = loader()
+        if not filePath:
+            return
         self.fs=fs
         self.data=data
         self.dataMax=dataMax
         self.sc.axes.cla()  # delete ax1 from the figure
-        self.sc.axes.plot(self.data/self.dataMax)
+        self.data=self.data/self.dataMax
+        self.data=self.data[0:50000]
+        self.sc.axes.plot(self.data)
         self.sc.draw()
 
     def aguanteFede2(self):
+        if self.data is None:
+            return
         signals = tercio(self.data,self.fs)
-        self.signals = signals[0]
-        self.signals = np.log10((np.fft.rfft(self.signals)))
+        self.signals = signals[10]
+        #self.signals = np.log10((np.fft.rfft(self.signals)))
         # self.signals = self.signals/np.max(self.data)
         self.mmovil = media_misley(np.array(self.signals),5)
         # self.sc.axes.cla()  # delete ax1 from the figure
@@ -94,9 +101,10 @@ def media_misley(x, w):
     return resultado
 
 def loader():
-    filePath = QFileDialog.getOpenFileName()
-    print(filePath[0])
-    data, fs= sf.read(filePath[0])
+    filePath, _ = QFileDialog.getOpenFileName()
+    if not filePath:
+        return [None] * 4
+    data, fs= sf.read(filePath)
     data=data.flatten('C') # Ojo aca porque el ruido era stereo asi que hay que cambiar esto segun haga falta
     print(data)
     dataMax=np.max(data)
@@ -105,18 +113,14 @@ def loader():
     return filePath, data, fs, dataMax
 
 def tercio(data,fs):
-    sig = np.fft.fft(data)
-    sig = sig[:len(sig)//2]
+    espectro = np.fft.fft(data)
+    espectro = espectro[:len(espectro)//2]
     indice = np.arange(-16,13,1) # int numbers array [-16,-15,...,12,13]
     fr = 1000 # 
     b = 3
     fm_v = []
     f1_v = []
     f2_v = []
-    h_v = []
-
-    xticks = [25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000,10000, 12500, 16000]
-    xlabels = ['25' ,'31.5', '40','50','63','80','100','125','160','200','250','315','400','500','630','800','1k','1.25k','1.6k','2k','2.5k','3.15k','4k','5k','6.3k','8k','10k','12.5k','16k']
 
     signals = []
 
@@ -130,12 +134,9 @@ def tercio(data,fs):
 
     for i in range(0,len(indice)):
         sos = sc.butter(6,(f1_v[i],f2_v[i]),btype='bandpass',output='sos')
-        a,b = sc.butter(6,(f1_v[i],f2_v[i]),btype='bandpass',analog=True,output='ba')
-        sig_filtrada = sc.sosfilt(sos, sig)
+        sig_filtrada = sc.sosfilt(sos, data)
         signals.append(sig_filtrada)
-        # plotwist=plt.plot(signals)
     
-    # print(len(signals))
     return signals
 
 def IACC_e(L, R, fs):
