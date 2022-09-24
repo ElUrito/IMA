@@ -65,4 +65,4 @@ class Recorder:
 if __name__ == "__main__":
     stream_params = StreamParams()
     recorder = Recorder(stream_params)
-    recorder.record(5, "audio.wav")
+    recorder.record(5, "sonidodeprueba.wav")
